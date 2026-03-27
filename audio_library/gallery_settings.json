@@ -1,0 +1,26 @@
+{
+  "actor_labels": {
+    "actor_01": "Chris",
+    "actor_02": "Kelly",
+    "actor_03": "Jeffrey",
+    "actor_04": "Ed",
+    "actor_05": "Valerie",
+    "actor_06": "Sherrin"
+  },
+  "section_help": {
+    "scripted_sentences": "A collection of 2,400 sentences across four sets (600 each). Each actor performs a set in seven distinct styles. All sets share a core group of 30 \"parallel\" sentences for direct cross-actor comparison. Each emotion has about 30-40 minutes of audio per actor.",
+    "contrastive_emphasis": "A specialized set of 180 sentences (30 per set) designed to highlight prosodic shifts. Each sentence is performed by all 6 actors across 6 distinct emphasis styles, providing a fully parallel corpus for analyzing how stress changes linguistic meaning. Each set has about 2 minutes of audio per actor.",
+    "numbers_emails": "This contains 126 sentences and has about 15 minutes of audio per actor.",
+    "long_form_material": "This contains 2 passages from books (between 400 and 800 words) and 6 medium-length news articles. It has about 18 minutes of audio per actor.",
+    "vad_personas": "Each persona contains about 15 passages to be recorded. Each persona has about 15 minutes of audio  per actor.",
+    "singing": "This contains lines or partial lines from 5 short, well-known songs. About 3 minutes of audio per actor.",
+    "generated_audio": "Model-generated or synthetic clips. Files live under `audio_library/generated/`.",
+    "conditioning_clips": "Reference / conditioning audio for models. Files live under `audio_library/conditioning_clips/`.",
+    "unscripted_dialogue": "Actors worked in pairs to produce unscripted audio in 27 different styles, based on provided prompts. Isolated tracks and mixed tracks are available."
+  },
+  "unscripted_styles": [
+    "Default",
+    "Laughing"
+  ],
+  "unscripted_style_labels": {}
+}
