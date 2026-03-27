@@ -35,6 +35,9 @@ DEFAULT_SCRIPTED_STYLES = [
 
 DEFAULT_UNSCRIPTED_STYLES = ["Default"]
 
+# Valerie (gallery default label) — show first in Unscripted dialogue browse defaults.
+UNSCRIPTED_PRIMARY_ACTOR = "actor_05"
+
 SECTION_KEYS = [
     "scripted_sentences",
     "contrastive_emphasis",
@@ -301,11 +304,27 @@ def _browse_default_scripted_pair() -> tuple[str, str]:
     return best_a, best_s
 
 
+def _unscripted_actor_order() -> List[str]:
+    ids = get_actor_ids()
+    if UNSCRIPTED_PRIMARY_ACTOR in ids:
+        return [UNSCRIPTED_PRIMARY_ACTOR] + [a for a in ids if a != UNSCRIPTED_PRIMARY_ACTOR]
+    return ids
+
+
 def _browse_default_unscripted_pair() -> tuple[str, str]:
     styles = load_unscripted_styles()
     if not styles:
         styles = list(DEFAULT_UNSCRIPTED_STYLES)
     actors = get_actor_ids()
+    if UNSCRIPTED_PRIMARY_ACTOR in actors:
+        best_n = -1
+        best_s = styles[0]
+        for s in styles:
+            folder = AUDIO_ROOT / "unscripted_dialogue" / UNSCRIPTED_PRIMARY_ACTOR / s
+            n = count_audio_files(folder)
+            if n > best_n:
+                best_n, best_s = n, s
+        return UNSCRIPTED_PRIMARY_ACTOR, best_s
     best_a, best_s = actors[0], styles[0]
     best_n = -1
     for a in actors:
@@ -496,11 +515,14 @@ def section_unscripted() -> None:
         styles = list(DEFAULT_UNSCRIPTED_STYLES)
     if st.session_state.get("ud_style") not in styles:
         st.session_state["ud_style"] = styles[0]
+    ud_order = _unscripted_actor_order()
+    if st.session_state.get("browse_ud_actor") not in ud_order:
+        st.session_state["browse_ud_actor"] = ud_order[0]
     c1, c2 = st.columns(2)
     with c1:
         st.selectbox(
             "Actor",
-            get_actor_ids(),
+            ud_order,
             format_func=format_actor_label,
             key="browse_ud_actor",
         )
