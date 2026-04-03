@@ -631,20 +631,27 @@ def page_browse() -> None:
         "Singing",
         "Unscripted dialogue",
     ]
-    tab = st.tabs(labels)
-    with tab[0]:
+    # Use a single active section (not st.tabs). Streamlit runs *every* tab's
+    # code each rerun; that can confuse st.audio identity so the wrong clip
+    # plays when two sections use the same actor/style names (e.g. Default).
+    choice = st.selectbox(
+        "Category",
+        labels,
+        key="browse_category_section",
+    )
+    if choice == "Scripted sentences":
         section_scripted_sentences()
-    with tab[1]:
+    elif choice == "Contrastive emphasis":
         section_contrastive_emphasis()
-    with tab[2]:
+    elif choice == "Numbers & emails":
         section_numbers_emails()
-    with tab[3]:
+    elif choice == "Long form material":
         section_long_form()
-    with tab[4]:
+    elif choice == "VAD personas":
         section_vad_personas()
-    with tab[5]:
+    elif choice == "Singing":
         section_singing()
-    with tab[6]:
+    else:
         section_unscripted()
 
 
