@@ -4,11 +4,13 @@ Venti Data Set Examples — Streamlit audio gallery.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import streamlit as st
+import streamlit.components.v1 as components
 import streamlit_authenticator as stauth
 
 # ---------------------------------------------------------------------------
@@ -37,6 +39,9 @@ DEFAULT_UNSCRIPTED_STYLES = ["Default"]
 
 # Valerie (gallery default label) — show first in Unscripted dialogue browse defaults.
 UNSCRIPTED_PRIMARY_ACTOR = "actor_05"
+
+# Actor-only browse sections use this sub-key in slot_blurbs (no second dropdown).
+SLOT_SUB_ACTOR_ONLY = "_"
 
 SECTION_KEYS = [
     "scripted_sentences",
@@ -82,6 +87,7 @@ def _default_gallery_settings() -> Dict[str, Any]:
     return {
         "actor_labels": {f"actor_{i:02d}": f"Actor {i}" for i in range(1, 7)},
         "section_help": dict(DEFAULT_SECTION_HELP),
+        "slot_blurbs": {},
     }
 
 
@@ -105,6 +111,8 @@ def load_gallery_settings() -> Dict[str, Any]:
     ):
         if key in data:
             base[key] = data[key]
+    if isinstance(data.get("slot_blurbs"), dict):
+        base["slot_blurbs"] = {str(k): str(v) for k, v in data["slot_blurbs"].items()}
     return base
 
 
@@ -164,6 +172,63 @@ def load_section_help() -> Dict[str, str]:
     if isinstance(raw, dict):
         merged.update({k: str(v) for k, v in raw.items()})
     return merged
+
+
+def slot_blurb_key(section_id: str, actor_id: str, sub: str) -> str:
+    return f"{section_id}::{actor_id}::{sub}"
+
+
+def get_slot_blurb_text(section_id: str, actor_id: str, sub: str) -> str:
+    raw = load_gallery_settings().get("slot_blurbs") or {}
+    if not isinstance(raw, dict):
+        return ""
+    return str(raw.get(slot_blurb_key(section_id, actor_id, sub), "")).strip()
+
+
+def _copy_to_clipboard_button(text: str, stable_id: str) -> None:
+    """Client-side copy; stable_id must be alphanumeric for HTML ids."""
+    safe = "".join(c if c.isalnum() else "_" for c in stable_id)[:64]
+    js_payload = json.dumps(text)
+    components.html(
+        f"""
+        <div style="font-family: system-ui, sans-serif;">
+          <button id="cp_{safe}" type="button"
+            style="cursor:pointer;padding:0.4rem 0.85rem;border-radius:0.35rem;border:1px solid #ccc;
+            background:#f8f9fa;font-size:13px;">Copy to clipboard</button>
+          <span id="cpm_{safe}" style="font-size:12px;margin-left:8px;color:#555;"></span>
+        </div>
+        <script>
+        (function() {{
+          const btn = document.getElementById("cp_{safe}");
+          const msg = document.getElementById("cpm_{safe}");
+          const txt = {js_payload};
+          btn.addEventListener("click", function() {{
+            navigator.clipboard.writeText(txt).then(function() {{
+              msg.textContent = "Copied!";
+            }}).catch(function() {{
+              msg.textContent = "Could not copy";
+            }});
+          }});
+        }})();
+        </script>
+        """,
+        height=52,
+    )
+
+
+def render_slot_blurb_block(section_id: str, actor_id: str, sub: str) -> None:
+    text = get_slot_blurb_text(section_id, actor_id, sub)
+    if not text:
+        return
+    h = hashlib.sha256(
+        slot_blurb_key(section_id, actor_id, sub).encode("utf-8")
+    ).hexdigest()[:20]
+    st.markdown("**Where can I find this data?**")
+    c1, c2 = st.columns([4, 1])
+    with c1:
+        st.markdown(text)
+    with c2:
+        _copy_to_clipboard_button(text, f"sb_{h}")
 
 
 # ---------------------------------------------------------------------------
@@ -369,6 +434,7 @@ def section_scripted_sentences() -> None:
         )
     actor = st.session_state["browse_ss_actor"]
     style = st.session_state["ss_style"]
+    render_slot_blurb_block("scripted_sentences", actor, style)
     folder = AUDIO_ROOT / "scripted_sentences" / actor / style
     coming_soon_message(folder)
     render_audio_list(list_audio_files(folder))
@@ -401,6 +467,7 @@ def section_contrastive_emphasis() -> None:
         )
     actor = st.session_state["browse_ce_actor"]
     et = st.session_state["ce_type"]
+    render_slot_blurb_block("contrastive_emphasis", actor, et)
     folder = AUDIO_ROOT / "contrastive_emphasis" / actor / et
     coming_soon_message(folder)
     render_audio_list(list_audio_files(folder))
@@ -419,6 +486,7 @@ def section_numbers_emails() -> None:
         key="browse_ne_actor",
     )
     actor = st.session_state["browse_ne_actor"]
+    render_slot_blurb_block("numbers_emails", actor, SLOT_SUB_ACTOR_ONLY)
     folder = AUDIO_ROOT / "numbers_emails" / actor
     coming_soon_message(folder)
     render_audio_list(list_audio_files(folder))
@@ -449,6 +517,7 @@ def section_long_form() -> None:
         )
     actor = st.session_state["browse_lf_actor"]
     mode = st.session_state["lf_mode"]
+    render_slot_blurb_block("long_form_material", actor, mode)
     folder = AUDIO_ROOT / "long_form_material" / actor / mode
     coming_soon_message(folder)
     render_audio_list(list_audio_files(folder))
@@ -481,6 +550,7 @@ def section_vad_personas() -> None:
         )
     actor = st.session_state["browse_vad_actor"]
     persona = st.session_state["vad_persona"]
+    render_slot_blurb_block("vad_personas", actor, persona)
     folder = AUDIO_ROOT / "vad_personas" / actor / persona
     coming_soon_message(folder)
     render_audio_list(list_audio_files(folder))
@@ -499,6 +569,7 @@ def section_singing() -> None:
         key="browse_sg_actor",
     )
     actor = st.session_state["browse_sg_actor"]
+    render_slot_blurb_block("singing", actor, SLOT_SUB_ACTOR_ONLY)
     folder = AUDIO_ROOT / "singing" / actor
     coming_soon_message(folder)
     render_audio_list(list_audio_files(folder))
@@ -535,6 +606,7 @@ def section_unscripted() -> None:
         )
     actor = st.session_state["browse_ud_actor"]
     style = st.session_state["ud_style"]
+    render_slot_blurb_block("unscripted_dialogue", actor, style)
     folder = AUDIO_ROOT / "unscripted_dialogue" / actor / style
     coming_soon_message(folder)
     render_audio_list(list_audio_files(folder))
@@ -604,11 +676,12 @@ def _admin_destination_folder(
 
 def page_admin() -> None:
     st.header("Admin")
-    tab_upload, tab_actor, tab_blurbs, tab_scripted, tab_unscripted = st.tabs(
+    tab_upload, tab_actor, tab_blurbs, tab_slot_blurbs, tab_scripted, tab_unscripted = st.tabs(
         [
             "Upload audio",
             "Actor display names",
             "Section blurbs",
+            "Browse slot blurbs",
             "Scripted styles",
             "Unscripted styles",
         ]
@@ -689,6 +762,95 @@ def page_admin() -> None:
             )
         if st.button("Save section blurbs", key="save_section_help"):
             settings["section_help"] = {k: help_map[k].strip() for k in SECTION_KEYS}
+            save_gallery_settings(settings)
+            st.success("Saved.")
+            st.rerun()
+
+    with tab_slot_blurbs:
+        st.subheader("Browse slot blurbs")
+        st.caption(
+            "Optional notes for a **specific Browse path**: section + actor + style (or mode / persona). "
+            "Shown under the section blurb with **Copy to clipboard**. Supports Markdown. "
+            "Leave empty and save to remove."
+        )
+        slot_sections = [
+            ("scripted_sentences", "Scripted sentences"),
+            ("contrastive_emphasis", "Contrastive emphasis"),
+            ("numbers_emails", "Numbers & emails"),
+            ("long_form_material", "Long form material"),
+            ("vad_personas", "VAD personas"),
+            ("singing", "Singing"),
+            ("unscripted_dialogue", "Unscripted dialogue"),
+        ]
+        sec = st.selectbox(
+            "Browse section",
+            [x[0] for x in slot_sections],
+            format_func=lambda sid: dict(slot_sections).get(sid, sid),
+            key="admin_slot_section_pick",
+        )
+        act = st.selectbox(
+            "Actor",
+            get_actor_ids(),
+            format_func=format_actor_label,
+            key="admin_slot_actor_pick",
+        )
+        sub = SLOT_SUB_ACTOR_ONLY
+        if sec == "scripted_sentences":
+            sub = st.selectbox(
+                "Style",
+                load_scripted_styles(),
+                format_func=format_style_label,
+                key="admin_slot_sub_scripted",
+            )
+        elif sec == "contrastive_emphasis":
+            sub = st.selectbox(
+                "Emphasis type",
+                discover_ce_types(),
+                format_func=humanize_label,
+                key="admin_slot_sub_ce",
+            )
+        elif sec == "long_form_material":
+            sub = st.selectbox(
+                "Mode",
+                ["news_default", "book_narrative"],
+                format_func=humanize_label,
+                key="admin_slot_sub_lf",
+            )
+        elif sec == "vad_personas":
+            sub = st.selectbox(
+                "Persona",
+                discover_vad_personas(),
+                format_func=humanize_label,
+                key="admin_slot_sub_vad",
+            )
+        elif sec == "unscripted_dialogue":
+            sub = st.selectbox(
+                "Style (unscripted)",
+                load_unscripted_styles(),
+                format_func=format_unscripted_style_label,
+                key="admin_slot_sub_ud",
+            )
+        else:
+            st.caption("Sub-option: *(this section is actor-only — use `_` internally)*")
+
+        sk = slot_blurb_key(sec, act, sub)
+        cur = get_slot_blurb_text(sec, act, sub)
+        ta_key = f"slotblurb_edit_{hashlib.md5(sk.encode()).hexdigest()}"
+        body = st.text_area(
+            "Blurb (Markdown)",
+            value=cur,
+            height=200,
+            key=ta_key,
+        )
+        if st.button("Save slot blurb", key="save_slot_blurb_main"):
+            settings = load_gallery_settings()
+            sb = dict(settings.get("slot_blurbs") or {})
+            t = str(body).strip()
+            if t:
+                sb[sk] = t
+            else:
+                sb.pop(sk, None)
+            settings["slot_blurbs"] = sb
             save_gallery_settings(settings)
             st.success("Saved.")
             st.rerun()
