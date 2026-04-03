@@ -149,6 +149,8 @@ def format_style_label(folder_name: str) -> str:
     labels = load_gallery_settings().get("scripted_style_labels") or {}
     if isinstance(labels, dict) and folder_name in labels:
         return str(labels[folder_name])
+    if folder_name == "Default":
+        return "Scripted — Default"
     return folder_name.replace("_", " ").title()
 
 
@@ -163,6 +165,8 @@ def format_unscripted_style_label(folder_name: str) -> str:
     labels = load_gallery_settings().get("unscripted_style_labels") or {}
     if isinstance(labels, dict) and folder_name in labels:
         return str(labels[folder_name])
+    if folder_name == "Default":
+        return "Dialogue — Default"
     return folder_name.replace("_", " ").title()
 
 
@@ -408,32 +412,34 @@ def _browse_default_unscripted_pair() -> tuple[str, str]:
 
 def section_scripted_sentences() -> None:
     st.info(load_section_help().get("scripted_sentences", DEFAULT_SECTION_HELP["scripted_sentences"]))
-    if "browse_ss_actor" not in st.session_state:
+    ss_actor_k = "browse_scripted_sentences_actor"
+    ss_style_k = "browse_scripted_sentences_style"
+    if ss_actor_k not in st.session_state:
         a, s = _browse_default_scripted_pair()
-        st.session_state["browse_ss_actor"] = a
-        st.session_state["ss_style"] = s
+        st.session_state[ss_actor_k] = a
+        st.session_state[ss_style_k] = s
     styles = load_scripted_styles()
     if not styles:
         styles = list(DEFAULT_SCRIPTED_STYLES)
-    if st.session_state.get("ss_style") not in styles:
-        st.session_state["ss_style"] = styles[0]
+    if st.session_state.get(ss_style_k) not in styles:
+        st.session_state[ss_style_k] = styles[0]
     c1, c2 = st.columns(2)
     with c1:
         st.selectbox(
             "Actor",
             get_actor_ids(),
             format_func=format_actor_label,
-            key="browse_ss_actor",
+            key=ss_actor_k,
         )
     with c2:
         st.selectbox(
             "Style",
             styles,
             format_func=format_style_label,
-            key="ss_style",
+            key=ss_style_k,
         )
-    actor = st.session_state["browse_ss_actor"]
-    style = st.session_state["ss_style"]
+    actor = st.session_state[ss_actor_k]
+    style = st.session_state[ss_style_k]
     render_slot_blurb_block("scripted_sentences", actor, style)
     folder = AUDIO_ROOT / "scripted_sentences" / actor / style
     coming_soon_message(folder)
@@ -577,35 +583,37 @@ def section_singing() -> None:
 
 def section_unscripted() -> None:
     st.info(load_section_help().get("unscripted_dialogue", DEFAULT_SECTION_HELP["unscripted_dialogue"]))
-    if "browse_ud_actor" not in st.session_state:
+    ud_actor_k = "browse_unscripted_dialogue_actor"
+    ud_style_k = "browse_unscripted_dialogue_style"
+    if ud_actor_k not in st.session_state:
         a, s = _browse_default_unscripted_pair()
-        st.session_state["browse_ud_actor"] = a
-        st.session_state["ud_style"] = s
+        st.session_state[ud_actor_k] = a
+        st.session_state[ud_style_k] = s
     styles = load_unscripted_styles()
     if not styles:
         styles = list(DEFAULT_UNSCRIPTED_STYLES)
-    if st.session_state.get("ud_style") not in styles:
-        st.session_state["ud_style"] = styles[0]
+    if st.session_state.get(ud_style_k) not in styles:
+        st.session_state[ud_style_k] = styles[0]
     ud_order = _unscripted_actor_order()
-    if st.session_state.get("browse_ud_actor") not in ud_order:
-        st.session_state["browse_ud_actor"] = ud_order[0]
+    if st.session_state.get(ud_actor_k) not in ud_order:
+        st.session_state[ud_actor_k] = ud_order[0]
     c1, c2 = st.columns(2)
     with c1:
         st.selectbox(
             "Actor",
             ud_order,
             format_func=format_actor_label,
-            key="browse_ud_actor",
+            key=ud_actor_k,
         )
     with c2:
         st.selectbox(
             "Style (unscripted)",
             styles,
             format_func=format_unscripted_style_label,
-            key="ud_style",
+            key=ud_style_k,
         )
-    actor = st.session_state["browse_ud_actor"]
-    style = st.session_state["ud_style"]
+    actor = st.session_state[ud_actor_k]
+    style = st.session_state[ud_style_k]
     render_slot_blurb_block("unscripted_dialogue", actor, style)
     folder = AUDIO_ROOT / "unscripted_dialogue" / actor / style
     coming_soon_message(folder)
@@ -889,7 +897,10 @@ def page_admin() -> None:
                 settings["scripted_style_labels"] = new_labels
                 save_gallery_settings(settings)
                 for k in list(st.session_state.keys()):
-                    if k in ("ss_style", "browse_ss_actor") or k.startswith("admin_"):
+                    if k in (
+                        "browse_scripted_sentences_style",
+                        "browse_scripted_sentences_actor",
+                    ) or k.startswith("admin_"):
                         try:
                             del st.session_state[k]
                         except KeyError:
@@ -936,7 +947,10 @@ def page_admin() -> None:
                 settings["unscripted_style_labels"] = new_labels
                 save_gallery_settings(settings)
                 for k in list(st.session_state.keys()):
-                    if k in ("ud_style", "browse_ud_actor") or k.startswith("admin_unscripted"):
+                    if k in (
+                        "browse_unscripted_dialogue_style",
+                        "browse_unscripted_dialogue_actor",
+                    ) or k.startswith("admin_unscripted"):
                         try:
                             del st.session_state[k]
                         except KeyError:
